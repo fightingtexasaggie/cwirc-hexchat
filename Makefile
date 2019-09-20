@@ -22,22 +22,22 @@
 #EXTRA_LDFLAGS=
 
 # Use these with Debian GNU/Linux for example
-#TARGET_OS=LINUX
-#PLUGIN_INSTALL_DIRECTORY=/usr/lib/xchat/plugins
-#FRONTEND_INSTALL_DIRECTORY=/usr/bin
-#CWIRC_EXTENSIONS_DIRECTORY=/usr/lib/cwirc/extensions
+TARGET_OS=LINUX
+PLUGIN_INSTALL_DIRECTORY=~/.config/hexchat/addons
+FRONTEND_INSTALL_DIRECTORY=~/bin
+CWIRC_EXTENSIONS_DIRECTORY=~/.config/cwirc/extensions
 #EXTRA_LDFLAGS=
 
 # Use these with FreeBSD 5.1 for example
 #TARGET_OS=FREEBSD
-#PLUGIN_INSTALL_DIRECTORY=/usr/X11R6/lib/xchat/plugins
+#PLUGIN_INSTALL_DIRECTORY=/usr/X11R6/lib/hexchat/plugins
 #FRONTEND_INSTALL_DIRECTORY=/usr/X11R6/bin
 #CWIRC_EXTENSIONS_DIRECTORY=/usr/X11R6/lib/cwirc/extensions
 #EXTRA_LDFLAGS=
 
 # Use these with NetBSD 1.6.1 for example
 #TARGET_OS=NETBSD
-#PLUGIN_INSTALL_DIRECTORY=/usr/pkg/lib/xchat/plugins
+#PLUGIN_INSTALL_DIRECTORY=/usr/pkg/lib/hexchat/plugins
 #FRONTEND_INSTALL_DIRECTORY=/usr/pkg/bin
 #CWIRC_EXTENSIONS_DIRECTORY=/usr/pkg/lib/cwirc/extensions
 #EXTRA_LDFLAGS=-lossaudio
@@ -57,7 +57,7 @@ PWD=pwd
 CC=gcc
 STRIP=strip
 
-XCHAT_PLUGIN_INCLUDE_PATH=xchat
+XCHAT_PLUGIN_INCLUDE_PATH=hexchat
 
 XCHAT_INC=-I$(XCHAT_PLUGIN_INCLUDE_PATH)
 CFLAGS=-Wall -Wstrict-prototypes -O2 -D$(TARGET_OS)
@@ -110,7 +110,7 @@ $(FRONTEND):		$(FRONTEND_OBJS)
 			$(STRIP) $@
 
 plugin.shared.o:	plugin.c					\
-			$(XCHAT_PLUGIN_INCLUDE_PATH)/xchat-plugin.h	\
+			$(XCHAT_PLUGIN_INCLUDE_PATH)/hexchat-plugin.h	\
 			types.h						\
 			common.h					\
 			cwirc.h						\
@@ -289,8 +289,8 @@ SRCFILES=	COPYING Changelog Makefile README LISEZMOI RELEASE_NOTES\
 		rcfile.c						\
 		cwdecoder.h cwframe.h cwirc.h cwsound.h extension.h	\
 		grid.h gui.h keyer.h io.h ipc.h morsecodes.h		\
-		propagation.h rcfile.h types.h xchat/xchat-plugin.h	\
-		xchat/README.xchat_include_file				\
+		propagation.h rcfile.h types.h hexchat/hexchat-plugin.h	\
+		hexchat/README.hexchat_include_file				\
 		straightkey.xpm iambickey.xpm smeter.xpm sidetone.xpm	\
 		sounder_down.wav sounder_up.wav				\
 		debian/changelog debian/compat debian/control		\

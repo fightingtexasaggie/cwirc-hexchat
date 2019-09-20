@@ -16,7 +16,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include <xchat-plugin.h>
+#include <hexchat-plugin.h>
 
 #include "types.h"
 #include "common.h"
@@ -28,8 +28,8 @@
 
 /* Global variables */
 struct cwirc_shm_block *sharedmem;
-static xchat_plugin *ph;		/* plugin handle */
-static xchat_hook *xc_hook[12];
+static hexchat_plugin *ph;		/* plugin handle */
+static hexchat_hook *xc_hook[12];
 static T_BOOL plugin_enabled=0;
 static pid_t watchdog_pid;
 static pid_t frontend_pid;
@@ -41,9 +41,9 @@ static int shmid=-1;
 
 
 /* Prototypes */
-int xchat_plugin_init(xchat_plugin *plugin_handle, char **plugin_name,
+int hexchat_plugin_init(hexchat_plugin *plugin_handle, char **plugin_name,
 			char **plugin_desc, char **plugin_version, char *arg);
-int xchat_plugin_deinit(void);
+int hexchat_plugin_deinit(void);
 static int enable_cb(char *word[], char *word_eol[], void *userdata);
 static void disable_plugin(void);
 static int msg_receive_cb(char *word[], void *userdata);
@@ -58,12 +58,12 @@ static void clean_exit_hdlr(int nothing);
 
 
 /* Register the plugin */
-int xchat_plugin_init(xchat_plugin *plugin_handle, char **plugin_name,
+int hexchat_plugin_init(hexchat_plugin *plugin_handle, char **plugin_name,
 			char **plugin_desc, char **plugin_version, char *arg)
 {
   plugin_enabled=0;
 
-  /* we need to save this for use with any xchat_* functions */
+  /* we need to save this for use with any hexchat_* functions */
   ph=plugin_handle;
 
   *plugin_name="CWirc";
@@ -72,24 +72,24 @@ int xchat_plugin_init(xchat_plugin *plugin_handle, char **plugin_name,
 
   /* Hook the message receive callback that'll filter out incoming cwirc frames
      even when the plugin is disabled */
-  xc_hook[1]=xchat_hook_print(ph,"Channel Message",XCHAT_PRI_NORM,
+  xc_hook[1]=hexchat_hook_print(ph,"Channel Message",XCHAT_PRI_NORM,
 	msg_receive_cb,0);
-  xc_hook[2]=xchat_hook_print(ph,"Private Message",XCHAT_PRI_NORM,
+  xc_hook[2]=hexchat_hook_print(ph,"Private Message",XCHAT_PRI_NORM,
 	msg_receive_cb,0);
-  xc_hook[3]=xchat_hook_print(ph,"Private Message to Dialog",XCHAT_PRI_NORM,
+  xc_hook[3]=hexchat_hook_print(ph,"Private Message to Dialog",XCHAT_PRI_NORM,
 	msg_receive_cb,0);
-  xc_hook[4]=xchat_hook_print(ph,"Notice",XCHAT_PRI_NORM,
+  xc_hook[4]=hexchat_hook_print(ph,"Notice",XCHAT_PRI_NORM,
 	msg_receive_cb,0);
 
   /* Add the "/CW" command */
-  xc_hook[0]=xchat_hook_command(ph,"CW",XCHAT_PRI_NORM,enable_cb,
+  xc_hook[0]=hexchat_hook_command(ph,"CW",XCHAT_PRI_NORM,enable_cb,
 			"Usage: CW, Turns ON/OFF morse coding/decoding",0);
 
   /* Add a "CWirc" button */
-  xchat_commandf(ph,"ADDBUTTON CWirc CW");
+  hexchat_commandf(ph,"ADDBUTTON CWirc CW");
 
   /* Inform the user we're loaded */
-  xchat_printf(ph,"CWirc loaded successfully!\n");
+  hexchat_printf(ph,"CWirc loaded successfully!\n");
 
   /* Seed the RNG with something vaguely random */
   srand(time(NULL));
@@ -100,7 +100,7 @@ int xchat_plugin_init(xchat_plugin *plugin_handle, char **plugin_name,
 
 
 /* Deregister the plugin */
-int xchat_plugin_deinit(void)
+int hexchat_plugin_deinit(void)
 {
   int i;
 
@@ -115,13 +115,13 @@ int xchat_plugin_deinit(void)
   }
 
   /* Remove the "CWirc" button */
-  xchat_commandf(ph,"DELBUTTON CWirc CW");
+  hexchat_commandf(ph,"DELBUTTON CWirc CW");
 
   /* Unhook all the remaining callbacks */
   for(i=0;i<5;i++)
-    xchat_unhook(ph,xc_hook[i]);
+    hexchat_unhook(ph,xc_hook[i]);
 
-  xchat_printf(ph, "CWirc unloaded successfully!\n");
+  hexchat_printf(ph, "CWirc unloaded successfully!\n");
   return(1);
 }
 
@@ -151,7 +151,7 @@ static int enable_cb(char *word[], char *word_eol[], void *userdata)
   /* Create the shared memory block */
   if((shmid=cwirc_shm_alloc(rand(),sizeof(struct cwirc_shm_block)))==-1)
   {
-    xchat_printf(ph,"CWirc : error : can't create shared memory.\n");
+    hexchat_printf(ph,"CWirc : error : can't create shared memory.\n");
     return(XCHAT_EAT_ALL);
    }
 
@@ -161,7 +161,7 @@ static int enable_cb(char *word[], char *word_eol[], void *userdata)
   {
     cwirc_shm_detach(sharedmem);
     cwirc_shm_free(shmid);
-    xchat_printf(ph,"CWirc : error : can't attach to the shared memory.\n");
+    hexchat_printf(ph,"CWirc : error : can't attach to the shared memory.\n");
     return(XCHAT_EAT_ALL);
   }
 
@@ -196,7 +196,7 @@ static int enable_cb(char *word[], char *word_eol[], void *userdata)
   /* Create the semaphore */
   if((sharedmem->semid=cwirc_sem_create(rand(),NB_SEMAPHORES))==-1)
   {
-    xchat_printf(ph,"CWirc : error : can't create semaphore.\n");
+    hexchat_printf(ph,"CWirc : error : can't create semaphore.\n");
     cwirc_shm_detach(sharedmem);
     cwirc_shm_free(shmid);
     return(XCHAT_EAT_ALL);
@@ -211,7 +211,7 @@ static int enable_cb(char *word[], char *word_eol[], void *userdata)
     cwirc_sem_destroy(sharedmem->semid);
     cwirc_shm_detach(sharedmem);
     cwirc_shm_free(shmid);
-    xchat_printf(ph,"CWirc : error : can't spawn frontend watchdog process.\n");
+    hexchat_printf(ph,"CWirc : error : can't spawn frontend watchdog process.\n");
     return(XCHAT_EAT_ALL);
     break;
 
@@ -308,18 +308,18 @@ static int enable_cb(char *word[], char *word_eol[], void *userdata)
   }
 
   /* Hook the additional callbacks we need when the plugin is enabled */
-  xc_hook[5]=xchat_hook_timer(ph,10,msg_send_cb,NULL);
-  xc_hook[6]=xchat_hook_print(ph,"Your Message",XCHAT_PRI_NORM,
+  xc_hook[5]=hexchat_hook_timer(ph,10,msg_send_cb,NULL);
+  xc_hook[6]=hexchat_hook_print(ph,"Your Message",XCHAT_PRI_NORM,
 	sent_msgs_filter_cb,0);
-  xc_hook[7]=xchat_hook_print(ph,"CTCP Generic",XCHAT_PRI_NORM,
+  xc_hook[7]=hexchat_hook_print(ph,"CTCP Generic",XCHAT_PRI_NORM,
 	ctcp_query_cb,0);
-  xc_hook[8]=xchat_hook_print(ph,"CTCP Generic to Channel",XCHAT_PRI_NORM,
+  xc_hook[8]=hexchat_hook_print(ph,"CTCP Generic to Channel",XCHAT_PRI_NORM,
 	ctcp_query_cb,0);
-  xc_hook[9]=xchat_hook_print(ph,"Notice Send",XCHAT_PRI_NORM,
+  xc_hook[9]=hexchat_hook_print(ph,"Notice Send",XCHAT_PRI_NORM,
 	sent_notices_filter_cb,0);
-  xc_hook[10]=xchat_hook_command(ph,"CWLOCK",XCHAT_PRI_NORM,cwlock_cb,
+  xc_hook[10]=hexchat_hook_command(ph,"CWLOCK",XCHAT_PRI_NORM,cwlock_cb,
 		"Usage: CWLOCK, Locks CWirc onto the current chat window",0);
-  xc_hook[11]=xchat_hook_command(ph,"CWUNLOCK",XCHAT_PRI_NORM,cwunlock_cb,
+  xc_hook[11]=hexchat_hook_command(ph,"CWUNLOCK",XCHAT_PRI_NORM,cwunlock_cb,
 		"Usage: CWUNLOCK, Release CWirc from any chat window lock.",0);
 
   /* All good */
@@ -334,13 +334,13 @@ static int enable_cb(char *word[], char *word_eol[], void *userdata)
 void disable_plugin(void)
 {
   int i;
-  
+
   /* Reap the frontend watchdog process */
   waitpid(watchdog_pid,NULL,0);
 
   /* Unhook the callbacks we don't need when the plugin is disabled */
   for(i=5;i<12;i++)
-    xchat_unhook(ph,xc_hook[i]);
+    hexchat_unhook(ph,xc_hook[i]);
 
   plugin_enabled=0;
 
@@ -349,7 +349,7 @@ void disable_plugin(void)
   cwirc_shm_detach(sharedmem);
   cwirc_shm_free(shmid);
 
-  xchat_printf(ph, "CWirc disabled!\n");
+  hexchat_printf(ph, "CWirc disabled!\n");
 }
 
 
@@ -357,7 +357,7 @@ void disable_plugin(void)
 /* Receive messages from the IRC channel */
 static int msg_receive_cb(char *word[],void *userdata)
 {
-  xchat_context *curr_ctx,*ctx;
+  hexchat_context *curr_ctx,*ctx;
   const char *ircchannel,*ircserver;
   char src_ircchannel[MAX_CHANNEL_NAME_SIZE];
   char src_ircserver[MAX_SERVER_NAME_SIZE];
@@ -372,43 +372,43 @@ static int msg_receive_cb(char *word[],void *userdata)
     if(plugin_enabled)
     {
       /* Find the originating channel namee */
-      if((ircchannel=xchat_get_info(ph,"channel"))==NULL)
+      if((ircchannel=hexchat_get_info(ph,"channel"))==NULL)
         return(XCHAT_EAT_ALL);
       strncpy(src_ircchannel,ircchannel,MAX_CHANNEL_NAME_SIZE);
       src_ircchannel[MAX_CHANNEL_NAME_SIZE-1]=0;
-    
+
       /* Find the originating server namee */
-      if((ircserver=xchat_get_info(ph,"server"))==NULL)
+      if((ircserver=hexchat_get_info(ph,"server"))==NULL)
         return(XCHAT_EAT_ALL);
       strncpy(src_ircserver,ircserver,MAX_SERVER_NAME_SIZE);
       src_ircserver[MAX_SERVER_NAME_SIZE-1]=0;
-    
+
       /* Are we not locked on a particular channel/server ? */
       if(!locked_channel[0])
       {
-        /* Save the current xchat context */
-        if((curr_ctx=xchat_get_context(ph))==NULL)
+        /* Save the current hexchat context */
+        if((curr_ctx=hexchat_get_context(ph))==NULL)
           return(XCHAT_EAT_ALL);
-    
+
         /* Find the context of the window currently in focus and switch to it */
-        if((ctx=xchat_find_context(ph,NULL,NULL))==NULL)
+        if((ctx=hexchat_find_context(ph,NULL,NULL))==NULL)
           return(XCHAT_EAT_ALL);
-        if(!xchat_set_context(ph,ctx))
+        if(!hexchat_set_context(ph,ctx))
           return(XCHAT_EAT_ALL);
-    
+
         /* Find the current channel name */
-        if((ircchannel=xchat_get_info(ph,"channel"))==NULL)
+        if((ircchannel=hexchat_get_info(ph,"channel"))==NULL)
           return(XCHAT_EAT_ALL);
         strncpy(cmp_ircchannel,ircchannel,MAX_CHANNEL_NAME_SIZE);
         cmp_ircchannel[MAX_CHANNEL_NAME_SIZE-1]=0;
         ircchannel=cmp_ircchannel;
-    
+
         /* Find the current server name */
-        if((ircserver=xchat_get_info(ph,"server"))==NULL)
+        if((ircserver=hexchat_get_info(ph,"server"))==NULL)
           return(XCHAT_EAT_ALL);
-    
+
         /* Restore the current context (source channel context) */
-        if(!xchat_set_context(ph,curr_ctx))
+        if(!hexchat_set_context(ph,curr_ctx))
           return(XCHAT_EAT_ALL);
       }
       else
@@ -416,12 +416,12 @@ static int msg_receive_cb(char *word[],void *userdata)
         ircchannel=locked_channel;
         ircserver=locked_server;
       }
-    
+
       /* Remove possible X-Chat color codes from the nick */
       nickptr=word[1];
       if(nickptr[0]==3)	/* CTRL-C indicates a color code follows */
         while(isdigit((++nickptr)[0]));
-  
+
       /* Did the line come from the channel currently in focus or the one we're
          locked on ? */
       if(!strcmp(src_ircchannel,ircchannel) && !strcmp(src_ircserver,ircserver))
@@ -430,10 +430,10 @@ static int msg_receive_cb(char *word[],void *userdata)
         if(cwirc_decode_cw_frame(nickptr,word[2],&callsign)==1)
         {
           if(callsign!=NULL)
-            xchat_printf(ph, "Receiving cw from %s [from %s] ...\n",callsign,
+            hexchat_printf(ph, "Receiving cw from %s [from %s] ...\n",callsign,
   		nickptr);
           else
-            xchat_printf(ph, "Receiving cw from %s ...\n",nickptr);
+            hexchat_printf(ph, "Receiving cw from %s ...\n",nickptr);
         }
       }
     }
@@ -447,14 +447,14 @@ static int msg_receive_cb(char *word[],void *userdata)
 
 
 
-/* This routine gets called regularly by xchat to poll and check if a message
+/* This routine gets called regularly by hexchat to poll and check if a message
    needs to be sent, and also take care of disabling the plugin if the frontend
    has terminated. It's butt-ugly but there's no other mechanism. */
 static int msg_send_cb(void *userdata)
 {
   const char *dst;
-  xchat_context *curr_ctx=NULL,*ctx;
-  xchat_list *dcclist;
+  hexchat_context *curr_ctx=NULL,*ctx;
+  hexchat_list *dcclist;
   T_BOOL do_dccchat;
   char *msgptr;
   static time_t last_error_tstamp=0,curtime;
@@ -466,7 +466,7 @@ static int msg_send_cb(void *userdata)
     /* Any error message from the frontend ? */
     if(sharedmem->frontend_msg[0])
     {
-      xchat_printf(ph,"%s\n",sharedmem->frontend_msg);
+      hexchat_printf(ph,"%s\n",sharedmem->frontend_msg);
       sharedmem->frontend_msg[0]=0;
     }
 
@@ -482,23 +482,23 @@ static int msg_send_cb(void *userdata)
     {
       dst=NULL;
 
-      /* Save the current xchat context */
-      if((curr_ctx=xchat_get_context(ph))!=NULL)
+      /* Save the current hexchat context */
+      if((curr_ctx=hexchat_get_context(ph))!=NULL)
       {
         /* Find the context of the window currently in focus, or the locked
            channel/server */
-        if((ctx=xchat_find_context(ph,locked_channel[0]?locked_server:NULL,
+        if((ctx=hexchat_find_context(ph,locked_channel[0]?locked_server:NULL,
 		locked_channel[0]?locked_channel:NULL))!=NULL)
         {
           /* Switch to that context */
-          if(xchat_set_context(ph,ctx))
-          {        
+          if(hexchat_set_context(ph,ctx))
+          {
             /* If we're not locked on a channel/server, find the current
                channel name */
             if(locked_channel[0])
               dst=locked_channel;
             else
-              dst=xchat_get_info(ph,"channel");
+              dst=hexchat_get_info(ph,"channel");
           }
         }
         else	/* We failed to find the context */
@@ -511,9 +511,9 @@ static int msg_send_cb(void *userdata)
                again */
             curtime=time(NULL);
             if(curtime-last_error_tstamp>3 &&
-		(ctx=xchat_find_context(ph,NULL,NULL))!=NULL &&
-		xchat_set_context(ph,ctx))
-              xchat_printf(ph,"WARNING: can't send cw to \"%s\" (%s) : stale "
+		(ctx=hexchat_find_context(ph,NULL,NULL))!=NULL &&
+		hexchat_set_context(ph,ctx))
+              hexchat_printf(ph,"WARNING: can't send cw to \"%s\" (%s) : stale "
 				"lock.\n",locked_channel,locked_server);
 
             last_error_tstamp=curtime;
@@ -527,13 +527,13 @@ static int msg_send_cb(void *userdata)
         /* Check if we have a DCC CHAT connection to destination if it's a
            nick */
         do_dccchat=0;
-        if(dst[0]!='#' && (dcclist=xchat_list_get(ph,"dcc")))
+        if(dst[0]!='#' && (dcclist=hexchat_list_get(ph,"dcc")))
         {
-          while(!do_dccchat && xchat_list_next(ph,dcclist))
+          while(!do_dccchat && hexchat_list_next(ph,dcclist))
           {
-            i=xchat_list_int(ph,dcclist,"type");
-            if(!strcmp(dst,xchat_list_str(ph,dcclist,"nick")) &&
-		xchat_list_int(ph,dcclist,"status")==1 && (i==2 || i==3))
+            i=hexchat_list_int(ph,dcclist,"type");
+            if(!strcmp(dst,hexchat_list_str(ph,dcclist,"nick")) &&
+		hexchat_list_int(ph,dcclist,"status")==1 && (i==2 || i==3))
               do_dccchat=1;
           }
         }
@@ -542,7 +542,7 @@ static int msg_send_cb(void *userdata)
         if(!cwirc_sem_P(sharedmem->semid,SEM_PERSONAL_INFO))
         {
           if((msgptr=cwirc_encode_cw_frame())!=NULL)
-            xchat_commandf(ph,"MSG %s%s %s",do_dccchat?"=":"",dst,msgptr);
+            hexchat_commandf(ph,"MSG %s%s %s",do_dccchat?"=":"",dst,msgptr);
 
           /* Release the semaphore */
           cwirc_sem_V(sharedmem->semid,SEM_PERSONAL_INFO);
@@ -554,7 +554,7 @@ static int msg_send_cb(void *userdata)
 
     /* Restore the current context */
     if(curr_ctx!=NULL)
-      xchat_set_context(ph,curr_ctx);
+      hexchat_set_context(ph,curr_ctx);
 
     /* Release the semaphore */
     cwirc_sem_V(sharedmem->semid,SEM_XMIT_BUF);
@@ -573,7 +573,7 @@ static int msg_send_cb(void *userdata)
 static int ctcp_query_cb(char *word[],void *userdata)
 {
   T_BOOL report_callsign,report_gridsquare;
-  
+
   /* Do we reply to CTCP CWIRC queries, and is this one ? */
   if(sharedmem->reply_to_ctcp && !strcasecmp(word[1],"CWIRC"))
   {
@@ -619,7 +619,7 @@ static int ctcp_query_cb(char *word[],void *userdata)
     }
 
     /* Send the reply */
-    xchat_commandf(ph,"NOTICE %s %s",word[2],ctcp_reply);
+    hexchat_commandf(ph,"NOTICE %s %s",word[2],ctcp_reply);
   }
 
   return(XCHAT_EAT_NONE);
@@ -631,14 +631,14 @@ static int ctcp_query_cb(char *word[],void *userdata)
 static int sent_msgs_filter_cb(char *word[],void *userdata)
 {
   static time_t last_send_tstamp=0,curtime;
-  
+
   /* Is the message one of our cw frames ? */
   if(cwirc_is_cw_frame(word[2]))
   {
     /* Is it more than 3s since we sent the last cw frame ? */
     curtime=time(NULL);
     if(curtime-last_send_tstamp>3)
-      xchat_printf(ph,"%s sending cw ...\n",word[1]);
+      hexchat_printf(ph,"%s sending cw ...\n",word[1]);
 
     last_send_tstamp=curtime;
 
@@ -666,21 +666,21 @@ static int sent_notices_filter_cb(char *word[],void *userdata)
    changes chat window afterward */
 static int cwlock_cb(char *word[], char *word_eol[], void *userdata)
 {
-  xchat_context *curr_ctx,*ctx;
+  hexchat_context *curr_ctx,*ctx;
   const char *irc_info;
 
-  /* Save the current xchat context */
-  if((curr_ctx=xchat_get_context(ph))==NULL)
+  /* Save the current hexchat context */
+  if((curr_ctx=hexchat_get_context(ph))==NULL)
     return(XCHAT_EAT_ALL);
 
   /* Find the context of the window currently in focus and switch to it */
-  if((ctx=xchat_find_context(ph,NULL,NULL))==NULL)
+  if((ctx=hexchat_find_context(ph,NULL,NULL))==NULL)
     return(XCHAT_EAT_ALL);
-  if(!xchat_set_context(ph,ctx))
+  if(!hexchat_set_context(ph,ctx))
     return(XCHAT_EAT_ALL);
 
   /* Find the current channel name */
-  if((irc_info=xchat_get_info(ph,"channel"))==NULL || !irc_info[0])
+  if((irc_info=hexchat_get_info(ph,"channel"))==NULL || !irc_info[0])
   {
     locked_channel[0]=locked_server[0]=0;
     return(XCHAT_EAT_ALL);
@@ -689,7 +689,7 @@ static int cwlock_cb(char *word[], char *word_eol[], void *userdata)
   locked_channel[MAX_CHANNEL_NAME_SIZE-1]=0;
 
   /* Find the current server name */
-  if((irc_info=xchat_get_info(ph,"server"))==NULL || !irc_info[0])
+  if((irc_info=hexchat_get_info(ph,"server"))==NULL || !irc_info[0])
   {
     locked_channel[0]=locked_server[0]=0;
     return(XCHAT_EAT_ALL);
@@ -698,14 +698,14 @@ static int cwlock_cb(char *word[], char *word_eol[], void *userdata)
   locked_server[MAX_SERVER_NAME_SIZE-1]=0;
 
   /* Restore the current context */
-  if(!xchat_set_context(ph,curr_ctx))
+  if(!hexchat_set_context(ph,curr_ctx))
   {
     locked_channel[0]=locked_server[0]=0;
     return(XCHAT_EAT_ALL);
   }
 
   /* Tell the user what CWirc is locked on now */
-  xchat_printf(ph, "CWirc locked onto \"%s\" (%s).\n",locked_channel,
+  hexchat_printf(ph, "CWirc locked onto \"%s\" (%s).\n",locked_channel,
 		locked_server);
 
   return(XCHAT_EAT_ALL);
@@ -718,10 +718,10 @@ static int cwunlock_cb(char *word[], char *word_eol[], void *userdata)
 {
   /* Tell the user what CWirc has been unlocked from if we can. */
   if(locked_channel[0])
-    xchat_printf(ph, "CWirc released from \"%s\" (%s).\n",locked_channel,
+    hexchat_printf(ph, "CWirc released from \"%s\" (%s).\n",locked_channel,
 		locked_server);
   else
-    xchat_printf(ph, "CWirc is not locked.\n");
+    hexchat_printf(ph, "CWirc is not locked.\n");
 
   locked_channel[0]=locked_server[0]=0;
 
