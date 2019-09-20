@@ -975,3 +975,5 @@ transmitted. Only other CWirc users can receive what you send.
     I am not responsible for any damage caused by this software, whether it's on
   your computer, your morse key, or if it wipes out your hard-drive, or if it
   sets off a nuclear bomb, etc ...
+# cwirc-hexchat
+This is a fork of the cwirc Xchat2 plugin for Hexchat.
